@@ -1,0 +1,942 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Directed Numbers Journey</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#4F46E5', // Indigo 600
+                        primaryHover: '#4338CA', // Indigo 700
+                        secondary: '#10B981', // Emerald 500
+                        danger: '#EF4444', // Red 500
+                        dark: '#1F2937', // Gray 800
+                        light: '#F3F4F6' // Gray 100
+                    },
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                    }
+                }
+            }
+        }
+    </script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f0fdf4;
+            background-image: radial-gradient(#dcfce7 1px, transparent 1px);
+            background-size: 20px 20px;
+        }
+
+        .game-container {
+            max-width: 900px;
+            margin: 0 auto;
+        }
+
+        .modal-overlay {
+            background-color: rgba(0, 0, 0, 0.5);
+            backdrop-filter: blur(4px);
+        }
+
+        @keyframes bounceIn {
+            0% { transform: scale(0.1); opacity: 0; }
+            60% { transform: scale(1.2); opacity: 1; }
+            100% { transform: scale(1); }
+        }
+
+        .bounce-in {
+            animation: bounceIn 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+        }
+        
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            10%, 30%, 50%, 70%, 90% { transform: translateX(-5px); }
+            20%, 40%, 60%, 80% { transform: translateX(5px); }
+        }
+        
+        .shake-animation {
+            animation: shake 0.5s;
+        }
+
+        .number-input {
+            text-align: center;
+            font-size: 1.5rem;
+            font-weight: bold;
+            -moz-appearance: textfield;
+        }
+        .number-input::-webkit-outer-spin-button,
+        .number-input::-webkit-inner-spin-button {
+            -webkit-appearance: none;
+            margin: 0;
+        }
+    </style>
+</head>
+<body class="text-gray-800 min-h-screen flex flex-col p-4 md:p-8">
+
+    <div class="game-container flex-grow flex flex-col bg-white rounded-2xl shadow-xl overflow-hidden w-full max-w-4xl mx-auto">
+        
+        <!-- Header -->
+        <header class="bg-primary text-white p-6 relative">
+            <div class="flex flex-col xl:flex-row justify-between items-center gap-4">
+                <div>
+                    <h1 class="text-3xl font-extrabold tracking-tight">Directed Numbers Journey</h1>
+                    <p class="mt-1 text-indigo-100 font-medium">Master addition and subtraction with tokens and number lines!</p>
+                </div>
+                
+                <!-- Mode Switcher -->
+                <div class="flex flex-wrap items-center justify-center gap-2">
+                    <button id="btn-mode-game" class="bg-indigo-700 hover:bg-indigo-800 text-white px-3 py-2 rounded-xl font-bold text-xs shadow transition-all border-2 border-indigo-400">
+                        Practice Mode
+                    </button>
+                    <button id="btn-mode-numberline" class="bg-indigo-900/60 hover:bg-indigo-800 text-indigo-200 px-3 py-2 rounded-xl font-bold text-xs shadow transition-all border-2 border-transparent">
+                        🚶‍♂️ Number Line Mode
+                    </button>
+                    <button id="btn-mode-sandbox" class="bg-indigo-900/60 hover:bg-indigo-800 text-indigo-200 px-3 py-2 rounded-xl font-bold text-xs shadow transition-all border-2 border-transparent">
+                        ✨ Creator Mode
+                    </button>
+                </div>
+            </div>
+            
+            <div id="game-stats" class="flex flex-wrap justify-center md:justify-end items-center gap-3 mt-4 pt-4 border-t border-indigo-700/50">
+                <div class="bg-indigo-800 rounded-lg px-3 py-1 flex items-center space-x-2 shadow-inner">
+                    <span class="text-xs text-indigo-200 uppercase font-bold">Level</span>
+                    <span id="level-display" class="text-xl font-bold">1</span>
+                </div>
+                <div class="bg-indigo-800 rounded-lg px-3 py-1 flex items-center space-x-2 shadow-inner">
+                    <span class="text-xs text-indigo-200 uppercase font-bold">Score</span>
+                    <span id="score-display" class="text-xl font-bold">0</span>
+                </div>
+            </div>
+        </header>
+
+        <!-- VIEW 1: PRACTICE MODE -->
+        <main id="view-practice" class="flex-grow p-6 flex flex-col items-center">
+            
+            <!-- Instructions/Status Area -->
+            <div id="status-message" class="text-center mb-6 text-lg font-semibold min-h-[2rem]">
+                Welcome! Let's start practicing.
+            </div>
+
+            <!-- Equation Area -->
+            <div class="flex-grow flex flex-col items-center justify-center space-y-8 w-full">
+                
+                <div id="equation-container" class="text-3xl md:text-5xl font-bold flex flex-wrap items-center justify-center gap-3 sm:gap-6 bg-gray-50 p-6 md:p-8 rounded-2xl shadow-sm border-2 border-indigo-100 w-full max-w-3xl">
+                    <span id="term1" class="px-3 py-2 rounded-xl bg-emerald-50 border-2 border-emerald-200 text-emerald-700 min-w-[4.5rem] text-center transition-all duration-300 shadow-sm">0</span>
+                    
+                    <span id="operator" class="text-gray-400 transition-all duration-500 px-1">+</span>
+                    
+                    <span id="term2" class="px-3 py-2 rounded-xl bg-purple-50 border-2 border-purple-200 text-purple-700 min-w-[5.5rem] text-center transition-all duration-300 shadow-sm">0</span>
+                    
+                    <span class="text-gray-400 px-1">=</span>
+                    
+                    <div class="relative flex items-center">
+                        <input type="number" id="answer-input" step="0.5" class="number-input w-28 h-20 border-4 border-gray-300 rounded-xl focus:border-primary focus:outline-none focus:ring-4 focus:ring-indigo-100 transition-colors bg-white shadow-inner" placeholder="?" autocomplete="off" disabled>
+                        
+                        <!-- Feedback Icons -->
+                        <div id="feedback-icon" class="absolute -top-4 -right-4 w-10 h-10 rounded-full flex items-center justify-center text-white opacity-0 transition-opacity duration-300">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Controls -->
+                <div class="flex flex-col sm:flex-row space-y-4 sm:space-y-0 sm:space-x-4 w-full max-w-md mt-6">
+                    <button id="btn-check" class="flex-1 bg-secondary hover:bg-emerald-600 text-white font-bold py-4 px-6 rounded-xl shadow-lg transition-transform transform hover:-translate-y-1 active:translate-y-0 disabled:opacity-50 disabled:cursor-not-allowed text-lg" disabled>
+                        Check Answer
+                    </button>
+                    <button id="btn-next" class="flex-1 bg-primary hover:bg-primaryHover text-white font-bold py-4 px-6 rounded-xl shadow-lg transition-transform transform hover:-translate-y-1 active:translate-y-0 hidden text-lg">
+                        Next Problem
+                    </button>
+                    <button id="btn-hint" class="flex-1 bg-blue-500 hover:bg-blue-600 text-white font-bold py-4 px-6 rounded-xl shadow-lg transition-transform transform hover:-translate-y-1 active:translate-y-0 disabled:opacity-50 disabled:cursor-not-allowed text-lg" disabled>
+                        Show Hint
+                    </button>
+                </div>
+                
+                <!-- Hint Area -->
+                <div id="hint-area" class="w-full max-w-xl bg-blue-50 rounded-xl p-6 border border-blue-200 text-blue-900 hidden text-base shadow-inner">
+                </div>
+
+            </div>
+        </main>
+
+        <!-- VIEW 2: NUMBER LINE WALK MODE -->
+        <main id="view-numberline" class="flex-grow p-6 flex flex-col items-center hidden">
+            <div class="w-full max-w-3xl text-center mb-4">
+                <h2 class="text-2xl font-bold text-gray-800">🐈 Cat Number Line Walk</h2>
+                <p class="text-gray-600 text-sm mt-1">Drag the cat or use Step 1 & Step 2 to watch directional jump arrows track your path!</p>
+            </div>
+
+            <!-- Problem display for number line walk -->
+            <div class="bg-gray-50 border-2 border-indigo-100 rounded-2xl p-4 mb-6 shadow-sm text-center w-full max-w-md flex items-center justify-center space-x-3 text-2xl font-bold">
+                <span id="nl-eq-text" class="text-primary">-3 + 5 = ?</span>
+            </div>
+
+            <!-- Interactive Number Line Canvas Container -->
+            <div class="w-full max-w-3xl bg-white border-2 border-indigo-100 rounded-2xl p-6 shadow-sm flex flex-col items-center">
+                <div class="relative w-full overflow-x-auto py-8">
+                    <!-- Locus Path Bar -->
+                    <div id="numberline-track" class="relative h-44 w-[740px] mx-auto flex items-center select-none cursor-pointer px-6">
+                        <!-- Vector Locus Arrow Container -->
+                        <div id="locus-container" class="absolute top-2 h-24 left-6 right-6 pointer-events-none">
+                        </div>
+
+                        <!-- Ruler line -->
+                        <div class="absolute left-6 right-6 h-3 bg-indigo-200 rounded-full top-28"></div>
+
+                        <div id="nl-ticks" class="absolute left-6 right-6 top-24 flex justify-between items-center pointer-events-none">
+                            <!-- Ticks populated dynamically with numbers on the line -->
+                        </div>
+
+                        <!-- Cat Character -->
+                        <div id="cat-character" class="absolute top-10 transition-all duration-300 ease-out cursor-grab active:cursor-grabbing flex flex-col items-center z-30" style="left: 50%; transform: translateX(-50%);">
+                            <div class="bg-primary text-white text-xs font-bold px-2.5 py-0.5 rounded-full shadow mb-1 whitespace-nowrap" id="cat-bubble">0</div>
+                            <div class="text-4xl filter drop-shadow-md select-none">🐱</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="flex flex-wrap justify-center gap-3 mt-4">
+                    <button id="nl-btn-step1" class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold px-5 py-2.5 rounded-xl shadow transition-transform active:scale-95">
+                        Step 1: Jump Term 1
+                    </button>
+                    <button id="nl-btn-step2" class="bg-secondary hover:bg-emerald-600 text-white font-bold px-5 py-2.5 rounded-xl shadow transition-transform active:scale-95">
+                        Step 2: Jump Term 2
+                    </button>
+                    <button id="nl-btn-reset" class="bg-gray-200 hover:bg-gray-300 text-gray-700 font-bold px-4 py-2.5 rounded-xl transition-colors">
+                        Reset Walk
+                    </button>
+                </div>
+            </div>
+
+            <div id="nl-feedback" class="mt-4 text-center font-bold text-lg min-h-[2rem] text-indigo-900"></div>
+        </main>
+
+        <!-- VIEW 3: FREE CREATOR / SANDBOX MODE -->
+        <main id="view-sandbox" class="flex-grow p-6 flex flex-col items-center hidden">
+            <div class="w-full max-w-3xl text-center mb-6">
+                <h2 class="text-2xl font-bold text-gray-800">Free Creator Sandbox</h2>
+                <p class="text-gray-600 text-sm mt-1">Tap cards from -5 to +5 and operators to create your own expression. Watch the tokens combine and calculate the total sum live!</p>
+            </div>
+
+            <!-- Current Expression Display -->
+            <div class="w-full max-w-3xl bg-gray-50 border-2 border-indigo-100 rounded-2xl p-6 mb-6 shadow-sm flex flex-col items-center">
+                <div class="text-xs uppercase tracking-wider text-indigo-600 font-bold mb-2">Current Expression</div>
+                <div id="sandbox-expression" class="text-2xl md:text-3xl font-bold flex flex-wrap items-center justify-center gap-2 min-h-[4rem] px-4 py-2 bg-white rounded-xl border border-gray-200 w-full">
+                    <span class="text-gray-400 italic text-lg">Tap number cards below to build your expression...</span>
+                </div>
+                
+                <div class="mt-4 flex items-center justify-between w-full px-2">
+                    <button id="sandbox-clear" class="bg-red-100 hover:bg-red-200 text-red-700 px-4 py-2 rounded-xl font-bold text-sm transition-colors flex items-center space-x-1">
+                        <span>Clear All</span>
+                    </button>
+                    <div class="text-xl font-extrabold text-gray-800">
+                        Result Sum: <span id="sandbox-result" class="text-primary font-black">0</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Card Deck (-5 to +5) -->
+            <div class="w-full max-w-3xl bg-white border border-gray-200 rounded-2xl p-6 shadow-sm">
+                <div class="text-sm font-bold text-gray-700 mb-4 text-center">Tap a card to add it (-5 to +5):</div>
+                <div class="flex flex-wrap justify-center gap-2 md:gap-3">
+                    <div id="card-deck" class="flex flex-wrap justify-center gap-2">
+                        <!-- Injected via script -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- Sandbox Visual Token Arena -->
+            <div class="w-full max-w-3xl mt-6 bg-blue-50 border border-blue-200 rounded-2xl p-6 shadow-inner">
+                <div class="text-sm font-bold text-blue-900 mb-3 text-center">Visual Token Representation & Zero-Pairs:</div>
+                <div id="sandbox-token-arena" class="flex flex-wrap justify-center items-center gap-2 min-h-[80px] p-4 bg-white/80 rounded-xl border border-blue-100">
+                    <span class="text-gray-400 text-sm italic">Add numbers above to view tokens</span>
+                </div>
+            </div>
+        </main>
+        
+        <footer class="bg-gray-100 p-4 text-center text-sm text-gray-500 border-t border-gray-200">
+            Remember: Whole circles = 1, Semicircles = ½. Opposite signs cancel out as zero pairs!
+        </footer>
+    </div>
+
+    <!-- Modals -->
+    <div id="start-modal" class="fixed inset-0 modal-overlay flex items-center justify-center z-50">
+        <div class="bg-white rounded-2xl p-8 max-w-md w-full mx-4 shadow-2xl text-center transform transition-all">
+            <h2 class="text-3xl font-extrabold text-primary mb-4">Ready to Practice?</h2>
+            <p class="text-gray-600 mb-6">
+                Test your skills at adding and subtracting positive and negative numbers with visual tokens!
+            </p>
+            <div class="space-y-3 mb-6 text-left text-sm bg-gray-50 p-4 rounded-lg">
+                <p>🟢 <strong>Level 1:</strong> Addition of positive & negative numbers</p>
+                <p>🟡 <strong>Level 2:</strong> Simple Subtraction</p>
+                <p>🔴 <strong>Level 3:</strong> Complex Subtraction & Decimals (0.5)</p>
+            </div>
+            <button id="btn-start-game" class="w-full bg-primary hover:bg-primaryHover text-white font-bold py-3 px-6 rounded-xl shadow-lg transition-colors text-lg">
+                Start Practice
+            </button>
+        </div>
+    </div>
+
+    <div id="game-over-modal" class="fixed inset-0 modal-overlay flex items-center justify-center z-50 hidden">
+        <div class="bg-white rounded-2xl p-8 max-w-md w-full mx-4 shadow-2xl text-center transform transition-all">
+            <div class="text-5xl mb-4">🏆</div>
+            <h2 class="text-3xl font-extrabold text-gray-800 mb-2">Great Job!</h2>
+            <p class="text-gray-600 mb-6">You've completed this practice session.</p>
+            
+            <div class="bg-gray-50 rounded-xl p-4 mb-6">
+                <p class="text-sm text-gray-500 uppercase font-bold">Final Score</p>
+                <p id="final-score" class="text-4xl font-black text-primary">0</p>
+            </div>
+            
+            <button id="btn-play-again" class="w-full bg-secondary hover:bg-emerald-600 text-white font-bold py-3 px-6 rounded-xl shadow-lg transition-colors text-lg">
+                Play Again
+            </button>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const config = {
+                totalQuestions: 12,
+                pointsPerQuestion: 10,
+                penaltyPerHint: 3,
+                levels: [
+                    { id: 1, name: 'Addition', ops: ['+'], types: ['pos+pos', 'pos+neg', 'neg+pos', 'neg+neg'] },
+                    { id: 2, name: 'Subtraction', ops: ['-'], types: ['pos-pos', 'neg-pos'] },
+                    { id: 3, name: 'Advanced & Decimals', ops: ['+', '-'], types: ['pos-neg', 'neg-neg', 'dec+neg', 'dec-dec'] }
+                ]
+            };
+
+            let state = {
+                currentQuestion: 0,
+                score: 0,
+                level: 1,
+                currentProblem: null,
+                hasUsedHint: false,
+                mode: 'practice',
+                sandboxItems: [],
+                nlPos: 0,
+                isDragging: false
+            };
+
+            const els = {
+                levelDisplay: document.getElementById('level-display'),
+                scoreDisplay: document.getElementById('score-display'),
+                statusMessage: document.getElementById('status-message'),
+                term1: document.getElementById('term1'),
+                operator: document.getElementById('operator'),
+                term2: document.getElementById('term2'),
+                answerInput: document.getElementById('answer-input'),
+                feedbackIcon: document.getElementById('feedback-icon'),
+                equationContainer: document.getElementById('equation-container'),
+                btnCheck: document.getElementById('btn-check'),
+                btnNext: document.getElementById('btn-next'),
+                btnHint: document.getElementById('btn-hint'),
+                hintArea: document.getElementById('hint-area'),
+                startModal: document.getElementById('start-modal'),
+                gameOverModal: document.getElementById('game-over-modal'),
+                btnStartGame: document.getElementById('btn-start-game'),
+                btnPlayAgain: document.getElementById('btn-play-again'),
+                finalScore: document.getElementById('final-score'),
+                btnModeGame: document.getElementById('btn-mode-game'),
+                btnModeNumberline: document.getElementById('btn-mode-numberline'),
+                btnModeSandbox: document.getElementById('btn-mode-sandbox'),
+                viewPractice: document.getElementById('view-practice'),
+                viewNumberline: document.getElementById('view-numberline'),
+                viewSandbox: document.getElementById('view-sandbox'),
+                gameStats: document.getElementById('game-stats'),
+                nlEqText: document.getElementById('nl-eq-text'),
+                nlTicks: document.getElementById('nl-ticks'),
+                numberlineTrack: document.getElementById('numberline-track'),
+                catCharacter: document.getElementById('cat-character'),
+                catBubble: document.getElementById('cat-bubble'),
+                nlBtnStep1: document.getElementById('nl-btn-step1'),
+                nlBtnStep2: document.getElementById('nl-btn-step2'),
+                nlBtnReset: document.getElementById('nl-btn-reset'),
+                nlFeedback: document.getElementById('nl-feedback'),
+                sandboxExpression: document.getElementById('sandbox-expression'),
+                sandboxClear: document.getElementById('sandbox-clear'),
+                sandboxResult: document.getElementById('sandbox-result'),
+                cardDeck: document.getElementById('card-deck'),
+                sandboxTokenArena: document.getElementById('sandbox-token-arena')
+            };
+
+            function getRandomVal(min, max, allowHalf = false) {
+                let val;
+                do {
+                    if (allowHalf && Math.random() > 0.5) {
+                        val = (Math.floor(Math.random() * ((max * 2) - (min * 2) + 1)) + (min * 2)) / 2;
+                    } else {
+                        val = Math.floor(Math.random() * (max - min + 1)) + min;
+                    }
+                } while (val === 0);
+                return val;
+            }
+
+            function generateProblem() {
+                if (state.currentQuestion > 8) state.level = 3;
+                else if (state.currentQuestion > 4) state.level = 2;
+                else state.level = 1;
+
+                els.levelDisplay.textContent = state.level;
+                const levelConfig = config.levels[state.level - 1];
+                const type = levelConfig.types[Math.floor(Math.random() * levelConfig.types.length)];
+                
+                let t1, t2, op;
+                let allowHalf = state.level === 3;
+
+                switch(type) {
+                    case 'pos+pos': t1 = getRandomVal(1, 6, allowHalf); op = '+'; t2 = getRandomVal(1, 6, allowHalf); break;
+                    case 'pos+neg': t1 = getRandomVal(1, 7, allowHalf); op = '+'; t2 = getRandomVal(-7, -1, allowHalf); break;
+                    case 'neg+pos': t1 = getRandomVal(-7, -1, allowHalf); op = '+'; t2 = getRandomVal(1, 7, allowHalf); break;
+                    case 'neg+neg': t1 = getRandomVal(-5, -1, allowHalf); op = '+'; t2 = getRandomVal(-5, -1, allowHalf); break;
+                    case 'pos-pos': t1 = getRandomVal(2, 8, allowHalf); op = '-'; t2 = getRandomVal(1, 6, allowHalf); break;
+                    case 'neg-pos': t1 = getRandomVal(-6, -1, allowHalf); op = '-'; t2 = getRandomVal(1, 6, allowHalf); break;
+                    case 'pos-neg': t1 = getRandomVal(1, 6, allowHalf); op = '-'; t2 = getRandomVal(-6, -1, allowHalf); break;
+                    case 'neg-neg': t1 = getRandomVal(-7, -1, allowHalf); op = '-'; t2 = getRandomVal(-7, -1, allowHalf); break;
+                    case 'dec+neg': t1 = getRandomVal(1, 5, true); op = '+'; t2 = getRandomVal(-5, -1, true); break;
+                    case 'dec-dec': t1 = getRandomVal(-4, 4, true); op = '-'; t2 = getRandomVal(-4, 4, true); break;
+                    default: t1 = 3; op = '+'; t2 = 2;
+                }
+
+                let result = op === '+' ? t1 + t2 : t1 - t2;
+                result = Math.round(result * 2) / 2;
+                return { term1: t1, operator: op, term2: t2, answer: result };
+            }
+
+            function formatNumber(num) {
+                return num < 0 ? `(${num})` : num;
+            }
+
+            function displayProblem() {
+                state.currentProblem = generateProblem();
+                state.hasUsedHint = false;
+                
+                els.term1.textContent = formatNumber(state.currentProblem.term1);
+                els.term1.className = `px-3 py-2 rounded-xl border-2 transition-all duration-300 shadow-sm ${state.currentProblem.term1 < 0 ? 'bg-red-50 border-red-200 text-red-600' : 'bg-emerald-50 border-emerald-200 text-emerald-700'}`;
+                
+                els.operator.textContent = state.currentProblem.operator;
+                els.operator.className = "text-gray-400 transition-all duration-500 font-bold px-1";
+                
+                els.term2.textContent = formatNumber(state.currentProblem.term2);
+                els.term2.className = `px-3 py-2 rounded-xl border-2 transition-all duration-300 shadow-sm ${state.currentProblem.term2 < 0 ? 'bg-rose-50 border-rose-200 text-rose-700' : 'bg-purple-50 border-purple-200 text-purple-700'}`;
+
+                els.answerInput.value = '';
+                els.answerInput.disabled = false;
+                els.answerInput.focus();
+                
+                els.btnCheck.disabled = false;
+                els.btnCheck.classList.remove('hidden');
+                els.btnNext.classList.add('hidden');
+                
+                els.btnHint.disabled = false;
+                els.hintArea.classList.add('hidden');
+                
+                els.feedbackIcon.className = 'absolute -top-4 -right-4 w-10 h-10 rounded-full flex items-center justify-center text-white opacity-0 transition-opacity duration-300';
+                els.equationContainer.classList.remove('border-green-400', 'border-red-400', 'shake-animation');
+                els.equationContainer.classList.add('border-indigo-100');
+                
+                els.statusMessage.textContent = `Question ${state.currentQuestion + 1} of ${config.totalQuestions}`;
+                
+                if (state.mode === 'numberline') {
+                    initNumberLineWalk();
+                }
+            }
+
+            const delay = ms => new Promise(res => setTimeout(res, ms));
+
+            function createToken(type, unit = 1) {
+                const token = document.createElement('div');
+                const isPos = type === 1;
+                const bgClass = isPos ? 'bg-emerald-500' : 'bg-red-500';
+                const sign = isPos ? '+' : '-';
+                
+                if (unit === 0.5) {
+                    token.className = `w-7 h-14 rounded-l-full flex shrink-0 items-center justify-center text-white text-xs font-bold shadow-md transition-all duration-500 transform ${bgClass} border-r-2 border-white/40`;
+                    token.innerHTML = `<span>${sign}½</span>`;
+                } else {
+                    token.className = `w-12 h-12 rounded-full flex shrink-0 items-center justify-center text-white text-sm font-bold shadow-md transition-all duration-500 transform ${bgClass}`;
+                    token.textContent = sign + '1';
+                }
+                return token;
+            }
+
+            async function showHint() {
+                els.btnHint.disabled = true;
+                state.hasUsedHint = true;
+                
+                els.hintArea.classList.remove('hidden');
+                els.hintArea.innerHTML = `
+                    <div id="hint-text" class="mb-3 font-semibold text-base text-blue-900 text-center"></div>
+                    <div id="token-arena" class="flex flex-wrap justify-center items-center gap-2 min-h-[70px] w-full p-3 bg-white/70 rounded-xl border border-blue-200"></div>
+                `;
+                
+                const hintText = document.getElementById('hint-text');
+                const arena = document.getElementById('token-arena');
+                
+                let t1 = state.currentProblem.term1;
+                let t2 = state.currentProblem.term2;
+                let op = state.currentProblem.operator;
+
+                if (op === '-') {
+                    hintText.innerHTML = "Subtraction rule: <strong>Keep-Change-Change</strong> (change subtraction to addition and flip the second number's sign)!";
+                    await delay(2500);
+                    
+                    op = '+';
+                    t2 = -t2;
+                    
+                    els.operator.classList.add('scale-150', 'text-blue-600', 'font-black');
+                    els.term2.classList.add('scale-110');
+                    await delay(400);
+                    
+                    els.operator.textContent = '+';
+                    els.term2.textContent = formatNumber(t2);
+                    els.term2.className = `px-3 py-2 rounded-xl border-2 transition-all duration-500 shadow-sm ${t2 < 0 ? 'bg-rose-50 border-rose-200 text-rose-700' : 'bg-purple-50 border-purple-200 text-purple-700'}`;
+                    
+                    await delay(800);
+                    els.operator.classList.remove('scale-150', 'text-blue-600', 'font-black');
+                    els.term2.classList.remove('scale-110');
+                    await delay(1000);
+                }
+
+                hintText.innerHTML = `Representing numbers with <strong>Tokens</strong> (Full circle = 1, Semicircle = ½)...`;
+                await delay(800);
+
+                let t1Tokens = [];
+                let t2Tokens = [];
+
+                async function renderTerm(val, tokensArray) {
+                    const isPos = val > 0 ? 1 : -1;
+                    const absVal = Math.abs(val);
+                    const intPart = Math.floor(absVal);
+                    const hasHalf = absVal % 1 !== 0;
+                    
+                    let delayTime = 0;
+                    for(let i = 0; i < intPart; i++) {
+                        let token = createToken(isPos, 1);
+                        token.style.opacity = '0';
+                        token.style.transform = 'scale(0.1)';
+                        arena.appendChild(token);
+                        tokensArray.push({ el: token, val: 1, sign: isPos, removed: false });
+                        setTimeout(() => { token.style.opacity = '1'; token.style.transform = 'scale(1)'; }, delayTime);
+                        delayTime += 70;
+                    }
+                    if (hasHalf) {
+                        let token = createToken(isPos, 0.5);
+                        token.style.opacity = '0';
+                        token.style.transform = 'scale(0.1)';
+                        arena.appendChild(token);
+                        tokensArray.push({ el: token, val: 0.5, sign: isPos, removed: false });
+                        setTimeout(() => { token.style.opacity = '1'; token.style.transform = 'scale(1)'; }, delayTime);
+                        delayTime += 70;
+                    }
+                    await delay(delayTime + 500);
+                }
+
+                await renderTerm(t1, t1Tokens);
+
+                if (t1 !== 0 && t2 !== 0) {
+                    let spacer = document.createElement('div');
+                    spacer.className = "w-4 flex items-center justify-center text-gray-400 font-bold text-xl mx-1";
+                    spacer.textContent = "+";
+                    arena.appendChild(spacer);
+                }
+
+                await renderTerm(t2, t2Tokens);
+
+                if ((t1 > 0 && t2 < 0) || (t1 < 0 && t2 > 0)) {
+                    hintText.innerHTML = "Opposite signs! Positive and negative tokens cancel out as <strong>Zero Pairs</strong>.";
+                    await delay(2000);
+                    
+                    let t1PosList = t1Tokens.filter(t => t.sign === 1 && !t.removed);
+                    let t1NegList = t1Tokens.filter(t => t.sign === -1 && !t.removed);
+                    let t2PosList = t2Tokens.filter(t => t.sign === 1 && !t.removed);
+                    let t2NegList = t2Tokens.filter(t => t.sign === -1 && !t.removed);
+
+                    let allPos = [...t1PosList, ...t2PosList];
+                    let allNeg = [...t1NegList, ...t2NegList];
+
+                    let minLen = Math.min(allPos.length, allNeg.length);
+                    for (let i = 0; i < minLen; i++) {
+                        allPos[i].el.classList.add('scale-75', 'opacity-30', 'ring-4', 'ring-yellow-400');
+                        allNeg[i].el.classList.add('scale-75', 'opacity-30', 'ring-4', 'ring-yellow-400');
+                        await delay(300);
+                    }
+                }
+                hintText.innerHTML = `Count the remaining tokens to find the answer!`;
+            }
+
+            function initNumberLineWalk() {
+                state.nlStep = 0;
+                let t1 = state.currentProblem.term1;
+                let t2 = state.currentProblem.term2;
+                let op = state.currentProblem.operator;
+                
+                els.nlEqText.textContent = `${formatNumber(t1)} ${op} ${formatNumber(t2)} = ?`;
+                els.nlFeedback.textContent = `Click Step 1 to make the cat jump for Term 1 (${t1})!`;
+                els.nlBtnStep1.disabled = false;
+                els.nlBtnStep2.disabled = true;
+
+                let ticksHTML = '';
+                for(let i = -8; i <= 8; i++) {
+                    ticksHTML += `
+                        <div class="flex flex-col items-center relative">
+                            <div class="w-1.5 h-5 bg-indigo-500 rounded-full mb-1"></div>
+                            <span class="text-xs font-bold text-gray-700">${i}</span>
+                        </div>
+                    `;
+                }
+                els.nlTicks.innerHTML = ticksHTML;
+                
+                state.nlPos = 0;
+                updateCatPosition(0, false);
+                document.getElementById('locus-container').innerHTML = '';
+            }
+
+            function updateCatPosition(val, animate = true) {
+                val = Math.max(-8, Math.min(8, val));
+                state.nlPos = val;
+                
+                const trackWidth = els.numberlineTrack.clientWidth - 48;
+                const percentage = (val + 8) / 16;
+                const leftPx = percentage * trackWidth;
+                
+                if (!animate) {
+                    els.catCharacter.style.transition = 'none';
+                } else {
+                    els.catCharacter.style.transition = 'all 0.5s cubic-bezier(0.34, 1.56, 0.64, 1)';
+                }
+                els.catCharacter.style.left = `${leftPx}px`;
+                els.catBubble.textContent = `${val}`;
+            }
+
+            function drawVectorArrow(fromVal, toVal, labelText, colorClass, tier = 0) {
+                const container = document.getElementById('locus-container');
+                const minVal = Math.min(fromVal, toVal);
+                const maxVal = Math.max(fromVal, toVal);
+                
+                const minPct = (minVal + 8) / 16;
+                const maxPct = (maxVal + 8) / 16;
+                const isRight = toVal >= fromVal;
+
+                const arrowEl = document.createElement('div');
+                const topOffset = tier === 0 ? 'top-1' : 'top-12';
+                arrowEl.className = `absolute ${topOffset} h-8 border-b-4 ${colorClass} rounded-t-full transition-all duration-500 flex items-center justify-center`;
+                
+                const trackWidth = els.numberlineTrack.clientWidth - 48;
+                const leftPx = minPct * trackWidth;
+                const widthPx = Math.max((maxPct - minPct) * trackWidth, 12);
+
+                arrowEl.style.left = `${leftPx}px`;
+                arrowEl.style.width = `${widthPx}px`;
+                
+                const tipSymbol = isRight ? '▶' : '◀';
+                const positionTip = isRight ? 'right-0 -right-2' : 'left-0 -left-2';
+                
+                arrowEl.innerHTML = `
+                    <span class="absolute -top-3.5 bg-white px-2 py-0.5 rounded-full text-xs font-extrabold shadow border ${colorClass.replace('border-', 'border-')} whitespace-nowrap">${labelText}</span>
+                    <span class="absolute bottom-[-8px] ${positionTip} text-xs font-black ${colorClass.replace('border-', 'text-')}">${tipSymbol}</span>
+                `;
+                container.appendChild(arrowEl);
+            }
+
+            els.nlBtnStep1.addEventListener('click', () => {
+                let t1 = state.currentProblem.term1;
+                updateCatPosition(t1, true);
+                
+                let col = t1 < 0 ? 'border-red-500 text-red-600' : 'border-emerald-500 text-emerald-600';
+                drawVectorArrow(0, t1, `Term 1: ${t1}`, col, 0);
+                
+                els.nlFeedback.textContent = `Cat jumped from 0 to ${t1}! Now click Step 2 for Term 2.`;
+                els.nlBtnStep1.disabled = true;
+                els.nlBtnStep2.disabled = false;
+            });
+
+            els.nlBtnStep2.addEventListener('click', () => {
+                let t1 = state.currentProblem.term1;
+                let t2 = state.currentProblem.term2;
+                let op = state.currentProblem.operator;
+                
+                let actualJump = op === '+' ? t2 : -t2;
+                let finalAns = t1 + actualJump;
+                
+                updateCatPosition(finalAns, true);
+                
+                let col = actualJump < 0 ? 'border-rose-500 text-rose-600' : 'border-indigo-500 text-indigo-600';
+                drawVectorArrow(t1, finalAns, `Jump: ${op}${Math.abs(t2)}`, col, 1);
+                
+                els.nlFeedback.textContent = `Cat completed the journey! Final Position = ${finalAns} 🐾🎉`;
+                els.nlBtnStep2.disabled = true;
+            });
+
+            function getNumberFromMouseEvent(e) {
+                const rect = els.numberlineTrack.getBoundingClientRect();
+                const trackInnerWidth = rect.width - 48;
+                const x = e.clientX - rect.left - 24;
+                const percentage = Math.max(0, Math.min(1, x / trackInnerWidth));
+                const rawVal = percentage * 16 - 8;
+                return Math.round(rawVal * 2) / 2;
+            }
+
+            els.numberlineTrack.addEventListener('mousedown', (e) => {
+                state.isDragging = true;
+                const val = getNumberFromMouseEvent(e);
+                updateCatPosition(val, false);
+            });
+
+            window.addEventListener('mousemove', (e) => {
+                if (!state.isDragging) return;
+                const val = getNumberFromMouseEvent(e);
+                updateCatPosition(val, false);
+            });
+
+            window.addEventListener('mouseup', () => {
+                state.isDragging = false;
+            });
+
+            els.nlBtnReset.addEventListener('click', () => {
+                initNumberLineWalk();
+            });
+
+            function checkAnswer() {
+                if (els.answerInput.value === '') return;
+
+                const userAnswer = parseFloat(els.answerInput.value);
+                const correctAnswer = state.currentProblem.answer;
+
+                els.answerInput.disabled = true;
+                els.btnCheck.disabled = true;
+                els.btnHint.disabled = true;
+
+                if (userAnswer === correctAnswer) {
+                    let points = config.pointsPerQuestion;
+                    if (state.hasUsedHint) points -= config.penaltyPerHint;
+                    state.score += Math.max(0, points);
+                    els.scoreDisplay.textContent = state.score;
+
+                    showFeedback(true);
+                    els.btnCheck.classList.add('hidden');
+                    els.btnNext.classList.remove('hidden');
+                    els.btnNext.focus();
+                    
+                    if (state.currentQuestion === config.totalQuestions - 1) {
+                         els.btnNext.textContent = "Finish Session";
+                    }
+                } else {
+                    showFeedback(false);
+                    setTimeout(() => {
+                        els.answerInput.disabled = false;
+                        els.btnCheck.disabled = false;
+                        els.btnHint.disabled = false;
+                        els.answerInput.value = '';
+                        els.answerInput.focus();
+                    }, 1500);
+                }
+            }
+
+            function showFeedback(isCorrect) {
+                els.feedbackIcon.classList.remove('opacity-0');
+                els.equationContainer.classList.remove('border-indigo-100');
+                
+                if (isCorrect) {
+                    els.feedbackIcon.className = 'absolute -top-4 -right-4 w-10 h-10 rounded-full flex items-center justify-center text-white bg-green-500 bounce-in shadow-lg';
+                    els.feedbackIcon.innerHTML = '<svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"></path></svg>';
+                    els.equationContainer.classList.add('border-green-400');
+                    els.statusMessage.innerHTML = '<span class="text-green-600 font-bold">Correct! Amazing job.</span>';
+                } else {
+                    els.feedbackIcon.className = 'absolute -top-4 -right-4 w-10 h-10 rounded-full flex items-center justify-center text-white bg-red-500 bounce-in shadow-lg';
+                    els.feedbackIcon.innerHTML = '<svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M6 18L18 6M6 6l12 12"></path></svg>';
+                    els.equationContainer.classList.add('border-red-400', 'shake-animation');
+                    els.statusMessage.innerHTML = '<span class="text-red-600 font-bold">Not quite right. Try the hint button!</span>';
+                    setTimeout(() => { els.equationContainer.classList.remove('shake-animation'); }, 500);
+                }
+            }
+
+            function nextQuestion() {
+                state.currentQuestion++;
+                if (state.currentQuestion >= config.totalQuestions) {
+                    els.finalScore.textContent = state.score;
+                    els.gameOverModal.classList.remove('hidden');
+                } else {
+                    displayProblem();
+                }
+            }
+
+            function startGame() {
+                state.currentQuestion = 0;
+                state.score = 0;
+                state.level = 1;
+                els.scoreDisplay.textContent = '0';
+                els.startModal.classList.add('hidden');
+                els.gameOverModal.classList.add('hidden');
+                displayProblem();
+            }
+
+            function initSandbox() {
+                let deckHTML = '';
+                const cardVals = [-5, -4, -3, -2, -1, -0.5, 0.5, 1, 2, 3, 4, 5];
+                
+                cardVals.forEach(val => {
+                    const label = val > 0 ? `+${val}` : `${val}`;
+                    const bgCol = val < 0 ? 'bg-red-50 text-red-700 border-red-200 hover:bg-red-100' : 'bg-emerald-50 text-emerald-700 border-emerald-200 hover:bg-emerald-100';
+                    deckHTML += `<button onclick="window.addSandboxItem(${val})" class="px-3 py-2.5 rounded-xl font-bold text-base border-2 ${bgCol} shadow-sm transition-transform active:scale-95">${label}</button>`;
+                });
+
+                deckHTML += `<button onclick="window.addSandboxOperator('+')" class="px-3 py-2.5 rounded-xl font-bold text-base bg-indigo-50 text-indigo-700 border-2 border-indigo-200 hover:bg-indigo-100 shadow-sm transition-transform active:scale-95">+</button>`;
+                deckHTML += `<button onclick="window.addSandboxOperator('-')" class="px-3 py-2.5 rounded-xl font-bold text-base bg-indigo-50 text-indigo-700 border-2 border-indigo-200 hover:bg-indigo-100 shadow-sm transition-transform active:scale-95">-</button>`;
+
+                els.cardDeck.innerHTML = deckHTML;
+                updateSandboxDisplay();
+            }
+
+            window.addSandboxItem = function(val) {
+                if (state.sandboxItems.length > 0 && state.sandboxItems[state.sandboxItems.length - 1].type === 'number') {
+                    state.sandboxItems.push({ val: '+', type: 'op' });
+                }
+                state.sandboxItems.push({ val: val, type: 'number' });
+                updateSandboxDisplay();
+            };
+
+            window.addSandboxOperator = function(op) {
+                if (state.sandboxItems.length === 0) return;
+                const last = state.sandboxItems[state.sandboxItems.length - 1];
+                if (last.type === 'op') {
+                    last.val = op;
+                } else {
+                    state.sandboxItems.push({ val: op, type: 'op' });
+                }
+                updateSandboxDisplay();
+            };
+
+            window.removeSandboxItem = function(index) {
+                state.sandboxItems.splice(index, 1);
+                updateSandboxDisplay();
+            };
+
+            function updateSandboxDisplay() {
+                if (state.sandboxItems.length === 0) {
+                    els.sandboxExpression.innerHTML = `<span class="text-gray-400 italic text-lg">Tap number cards below to build your expression...</span>`;
+                    els.sandboxResult.textContent = '0';
+                    els.sandboxTokenArena.innerHTML = `<span class="text-gray-400 text-sm italic">Add numbers above to view tokens</span>`;
+                    return;
+                }
+
+                let html = '';
+                state.sandboxItems.forEach((item, idx) => {
+                    if (item.type === 'number') {
+                        const colClass = item.val < 0 ? 'bg-red-50 border-red-200 text-red-600' : 'bg-emerald-50 border-emerald-200 text-emerald-700';
+                        html += `<span onclick="window.removeSandboxItem(${idx})" class="px-3 py-1 rounded-xl border-2 ${colClass} cursor-pointer hover:opacity-70 transition-all" title="Click to remove">${formatNumber(item.val)}</span>`;
+                    } else {
+                        html += `<span class="text-gray-500 font-bold px-1">${item.val}</span>`;
+                    }
+                });
+
+                els.sandboxExpression.innerHTML = html;
+
+                let finalSum = 0;
+                try {
+                    let exprStr = state.sandboxItems.map(i => i.type === 'number' ? `(${i.val})` : i.val).join(' ');
+                    finalSum = Function(`return ${exprStr}`)();
+                    finalSum = Math.round(finalSum * 2) / 2;
+                } catch(e) {
+                    finalSum = 0;
+                }
+
+                els.sandboxResult.textContent = finalSum;
+                renderSandboxTokens();
+            }
+
+            function renderSandboxTokens() {
+                const arena = els.sandboxTokenArena;
+                arena.innerHTML = '';
+
+                let numbers = state.sandboxItems.filter(i => i.type === 'number').map(i => i.val);
+                if (numbers.length === 0) {
+                    arena.innerHTML = `<span class="text-gray-400 text-sm italic">Add numbers above to view tokens</span>`;
+                    return;
+                }
+
+                let evaluatedVal = 0;
+                try {
+                    let exprStr = state.sandboxItems.map(i => i.type === 'number' ? `(${i.val})` : i.val).join(' ');
+                    evaluatedVal = Function(`return ${exprStr}`)();
+                } catch(e) {
+                    evaluatedVal = numbers.reduce((a, b) => a + b, 0);
+                }
+
+                const isPos = evaluatedVal >= 0;
+                const absVal = Math.abs(evaluatedVal);
+                const intPart = Math.floor(absVal);
+                const hasHalf = absVal % 1 !== 0;
+
+                if (evaluatedVal === 0) {
+                    arena.innerHTML = `<span class="text-gray-500 font-semibold">Net Total is 0 (All tokens cancelled out!)</span>`;
+                    return;
+                }
+
+                for(let i = 0; i < intPart; i++) {
+                    arena.appendChild(createToken(isPos ? 1 : -1, 1));
+                }
+                if (hasHalf) {
+                    arena.appendChild(createToken(isPos ? 1 : -1, 0.5));
+                }
+            }
+
+            els.sandboxClear.addEventListener('click', () => {
+                state.sandboxItems = [];
+                updateSandboxDisplay();
+            });
+
+            function setMode(mode) {
+                state.mode = mode;
+                els.viewPractice.classList.add('hidden');
+                els.viewNumberline.classList.add('hidden');
+                els.viewSandbox.classList.add('hidden');
+                els.gameStats.classList.add('hidden');
+
+                els.btnModeGame.className = "bg-indigo-900/60 hover:bg-indigo-800 text-indigo-200 px-3 py-2 rounded-xl font-bold text-xs shadow transition-all border-2 border-transparent";
+                els.btnModeNumberline.className = "bg-indigo-900/60 hover:bg-indigo-800 text-indigo-200 px-3 py-2 rounded-xl font-bold text-xs shadow transition-all border-2 border-transparent";
+                els.btnModeSandbox.className = "bg-indigo-900/60 hover:bg-indigo-800 text-indigo-200 px-3 py-2 rounded-xl font-bold text-xs shadow transition-all border-2 border-transparent";
+
+                if (mode === 'practice') {
+                    els.viewPractice.classList.remove('hidden');
+                    els.gameStats.classList.remove('hidden');
+                    els.btnModeGame.className = "bg-indigo-700 hover:bg-indigo-800 text-white px-3 py-2 rounded-xl font-bold text-xs shadow transition-all border-2 border-indigo-400";
+                } else if (mode === 'numberline') {
+                    els.viewNumberline.classList.remove('hidden');
+                    els.btnModeNumberline.className = "bg-indigo-700 hover:bg-indigo-800 text-white px-3 py-2 rounded-xl font-bold text-xs shadow transition-all border-2 border-indigo-400";
+                    initNumberLineWalk();
+                } else if (mode === 'sandbox') {
+                    els.viewSandbox.classList.remove('hidden');
+                    els.btnModeSandbox.className = "bg-indigo-700 hover:bg-indigo-800 text-white px-3 py-2 rounded-xl font-bold text-xs shadow transition-all border-2 border-indigo-400";
+                    initSandbox();
+                }
+            }
+
+            els.btnModeGame.addEventListener('click', () => setMode('practice'));
+            els.btnModeNumberline.addEventListener('click', () => setMode('numberline'));
+            els.btnModeSandbox.addEventListener('click', () => setMode('sandbox'));
+
+            els.btnStartGame.addEventListener('click', startGame);
+            els.btnPlayAgain.addEventListener('click', startGame);
+            els.btnCheck.addEventListener('click', checkAnswer);
+            els.btnNext.addEventListener('click', nextQuestion);
+            els.btnHint.addEventListener('click', showHint);
+
+            els.answerInput.addEventListener('keypress', (e) => {
+                if (e.key === 'Enter') {
+                    if (!els.btnCheck.disabled && !els.btnCheck.classList.contains('hidden')) {
+                        checkAnswer();
+                    } else if (!els.btnNext.classList.contains('hidden')) {
+                        nextQuestion();
+                    }
+                }
+            });
+        });
+    </script>
+</body>
+</html>
